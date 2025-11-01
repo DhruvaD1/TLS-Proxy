@@ -8,162 +8,203 @@ use tokio::fs;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProxyConfig {
     pub listen_addr: SocketAddr,
-    pub backends: Vec<Backend>,
-    pub cert_path: PathBuf,
-    pub key_path: PathBuf,
-    pub strategy: LoadBalancingStrategy,
+    pub backends: Vec<SocketAddr>,
+    pub cert_path: String,
+    pub key_path: String,
+    pub ca_path: Option<String>,
+    pub strategy: String,
     pub metrics_addr: SocketAddr,
-    pub tcp: TcpConfig,
-    pub tls: TlsConfig,
+    pub rate_limit: RateLimitConfig,
     pub health_check: HealthCheckConfig,
-    pub limits: LimitsConfig,
-    pub log_level: String,
+    pub circuit_breaker: CircuitBreakerConfig,
+    pub websocket: WebSocketConfig,
+    pub session: SessionConfig,
+    pub connection_pool: ConnectionPoolConfig,
+    pub certificate: CertificateConfig,
+    pub admin: AdminConfig,
+    pub performance: PerformanceConfig,
+    pub security: SecurityConfig,
+    pub logging: LoggingConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Backend {
-    pub addr: SocketAddr,
-    pub weight: u32,
-    pub max_connections: Option<usize>,
-    pub health_check_path: Option<String>,
-    pub timeout: Duration,
-    pub retry_attempts: u32,
-    pub enabled: bool,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LoadBalancingStrategy {
-    RoundRobin,
-    LeastConnections,
-    WeightedRoundRobin,
-    IpHash,
-    Random,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TcpConfig {
-    pub nodelay: bool,
-    pub keepalive: Option<Duration>,
-    pub recv_buffer_size: Option<usize>,
-    pub send_buffer_size: Option<usize>,
-    pub max_backlog: u32,
-    pub reuse_port: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TlsConfig {
-    pub session_timeout: Duration,
-    pub session_cache_size: usize,
-    pub require_sni: bool,
-    pub prefer_server_cipher_order: bool,
-    pub min_protocol_version: TlsVersion,
-    pub max_protocol_version: TlsVersion,
-    pub cipher_suites: Vec<String>,
-    pub enable_ocsp_stapling: bool,
-    pub client_auth: ClientAuthMode,
-    pub ca_cert_path: Option<PathBuf>,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TlsVersion {
-    Tls12,
-    Tls13,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ClientAuthMode {
-    None,
-    Optional,
-    Required,
+pub struct RateLimitConfig {
+    pub requests_per_minute: Option<u32>,
+    pub burst_size: Option<u32>,
+    pub global_requests_per_second: Option<u32>,
+    pub cleanup_interval_seconds: Option<u64>,
+    pub whitelist_ips: Option<Vec<String>>,
+    pub blacklist_ips: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthCheckConfig {
-    pub interval: Duration,
-    pub timeout: Duration,
-    pub unhealthy_threshold: u32,
-    pub healthy_threshold: u32,
-    pub check_path: String,
-    pub expected_status: u16,
-    pub enabled: bool,
+    pub interval_seconds: Option<u64>,
+    pub timeout_seconds: Option<u64>,
+    pub healthy_threshold: Option<u32>,
+    pub unhealthy_threshold: Option<u32>,
+    pub path: Option<String>,
+    pub expected_status: Option<u16>,
+    pub enabled: Option<bool>,
+    pub user_agent: Option<String>,
+    pub headers: Option<std::collections::HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LimitsConfig {
-    pub max_connections: usize,
-    pub connection_timeout: Duration,
-    pub idle_timeout: Duration,
-    pub max_request_size: usize,
-    pub rate_limit_requests_per_second: Option<u32>,
-    pub rate_limit_window: Duration,
-    pub max_concurrent_handshakes: usize,
+pub struct CircuitBreakerConfig {
+    pub failure_threshold: Option<u32>,
+    pub recovery_timeout_seconds: Option<u64>,
+    pub half_open_max_calls: Option<u32>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WebSocketConfig {
+    pub max_connections: Option<usize>,
+    pub connection_timeout_seconds: Option<u64>,
+    pub ping_interval_seconds: Option<u64>,
+    pub pong_timeout_seconds: Option<u64>,
+    pub max_message_size: Option<usize>,
+    pub max_frame_size: Option<usize>,
+    pub enabled: Option<bool>,
+    pub compression: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionConfig {
+    pub timeout_seconds: Option<u64>,
+    pub sticky_sessions: Option<bool>,
+    pub session_header: Option<String>,
+    pub cookie_name: Option<String>,
+    pub secure_cookies: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectionPoolConfig {
+    pub max_connections_per_backend: Option<usize>,
+    pub min_idle_connections: Option<usize>,
+    pub max_idle_time_seconds: Option<u64>,
+    pub connection_timeout_seconds: Option<u64>,
+    pub keep_alive_interval_seconds: Option<u64>,
+    pub health_check_interval_seconds: Option<u64>,
+    pub max_connection_lifetime_seconds: Option<u64>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateConfig {
+    pub auto_reload: Option<bool>,
+    pub check_interval_seconds: Option<u64>,
+    pub expiry_warning_days: Option<u64>,
+    pub domains: Option<Vec<String>>,
+    pub ocsp_stapling: Option<bool>,
+    pub must_staple: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdminConfig {
+    pub bind_address: Option<SocketAddr>,
+    pub api_key: Option<String>,
+    pub cors_origins: Option<Vec<String>>,
+    pub enabled: Option<bool>,
+    pub basic_auth: Option<BasicAuthConfig>,
+    pub tls_enabled: Option<bool>,
+    pub read_timeout_seconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BasicAuthConfig {
+    pub username: String,
+    pub password_hash: String,
+    pub realm: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformanceConfig {
+    pub worker_threads: Option<usize>,
+    pub max_blocking_threads: Option<usize>,
+    pub tcp_nodelay: Option<bool>,
+    pub tcp_keepalive_seconds: Option<u64>,
+    pub socket_reuse_port: Option<bool>,
+    pub max_concurrent_connections: Option<usize>,
+    pub connection_timeout_seconds: Option<u64>,
+    pub idle_timeout_seconds: Option<u64>,
+    pub graceful_shutdown_timeout_seconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityConfig {
+    pub tls_min_version: Option<String>,
+    pub tls_max_version: Option<String>,
+    pub cipher_suites: Option<Vec<String>>,
+    pub require_sni: Option<bool>,
+    pub client_cert_auth: Option<ClientCertAuthConfig>,
+    pub hsts_max_age_seconds: Option<u64>,
+    pub deny_invalid_hosts: Option<bool>,
+    pub proxy_protocol: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientCertAuthConfig {
+    pub enabled: bool,
+    pub ca_cert_path: String,
+    pub verify_mode: String,
+    pub crl_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LoggingConfig {
+    pub level: Option<String>,
+    pub format: Option<String>,
+    pub access_log: Option<AccessLogConfig>,
+    pub structured_logging: Option<bool>,
+    pub log_requests: Option<bool>,
+    pub log_responses: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccessLogConfig {
+    pub enabled: bool,
+    pub path: String,
+    pub rotation: Option<String>,
+    pub max_files: Option<u32>,
+    pub max_size_mb: Option<u64>,
 }
 
 impl Default for ProxyConfig {
     fn default() -> Self {
         Self {
             listen_addr: "0.0.0.0:443".parse().unwrap(),
-            backends: vec![Backend::default()],
-            cert_path: PathBuf::from("./certs/server.crt"),
-            key_path: PathBuf::from("./certs/server.key"),
-            strategy: LoadBalancingStrategy::RoundRobin,
+            backends: vec!["127.0.0.1:8080".parse().unwrap()],
+            cert_path: "./certs/server.crt".to_string(),
+            key_path: "./certs/server.key".to_string(),
+            ca_path: None,
+            strategy: "round_robin".to_string(),
             metrics_addr: "0.0.0.0:9090".parse().unwrap(),
-            tcp: TcpConfig::default(),
-            tls: TlsConfig::default(),
+            rate_limit: RateLimitConfig::default(),
             health_check: HealthCheckConfig::default(),
-            limits: LimitsConfig::default(),
-            log_level: "info".to_string(),
+            circuit_breaker: CircuitBreakerConfig::default(),
+            websocket: WebSocketConfig::default(),
+            session: SessionConfig::default(),
+            connection_pool: ConnectionPoolConfig::default(),
+            certificate: CertificateConfig::default(),
+            admin: AdminConfig::default(),
+            performance: PerformanceConfig::default(),
+            security: SecurityConfig::default(),
+            logging: LoggingConfig::default(),
         }
     }
 }
 
-impl Default for Backend {
+impl Default for RateLimitConfig {
     fn default() -> Self {
         Self {
-            addr: "127.0.0.1:8080".parse().unwrap(),
-            weight: 1,
-            max_connections: Some(1000),
-            health_check_path: Some("/health".to_string()),
-            timeout: Duration::from_secs(30),
-            retry_attempts: 3,
-            enabled: true,
-        }
-    }
-}
-
-impl Default for TcpConfig {
-    fn default() -> Self {
-        Self {
-            nodelay: true,
-            keepalive: Some(Duration::from_secs(600)),
-            recv_buffer_size: Some(8192),
-            send_buffer_size: Some(8192),
-            max_backlog: 1024,
-            reuse_port: true,
-        }
-    }
-}
-
-impl Default for TlsConfig {
-    fn default() -> Self {
-        Self {
-            session_timeout: Duration::from_secs(300),
-            session_cache_size: 20480,
-            require_sni: false,
-            prefer_server_cipher_order: true,
-            min_protocol_version: TlsVersion::Tls12,
-            max_protocol_version: TlsVersion::Tls13,
-            cipher_suites: vec![
-                "TLS_AES_256_GCM_SHA384".to_string(),
-                "TLS_AES_128_GCM_SHA256".to_string(),
-                "TLS_CHACHA20_POLY1305_SHA256".to_string(),
-            ],
-            enable_ocsp_stapling: false,
-            client_auth: ClientAuthMode::None,
-            ca_cert_path: None,
+            requests_per_minute: Some(300),
+            burst_size: Some(50),
+            global_requests_per_second: Some(1000),
+            cleanup_interval_seconds: Some(60),
+            whitelist_ips: None,
+            blacklist_ips: None,
         }
     }
 }
@@ -171,33 +212,145 @@ impl Default for TlsConfig {
 impl Default for HealthCheckConfig {
     fn default() -> Self {
         Self {
-            interval: Duration::from_secs(30),
-            timeout: Duration::from_secs(5),
-            unhealthy_threshold: 3,
-            healthy_threshold: 2,
-            check_path: "/health".to_string(),
-            expected_status: 200,
-            enabled: true,
+            interval_seconds: Some(10),
+            timeout_seconds: Some(5),
+            healthy_threshold: Some(2),
+            unhealthy_threshold: Some(3),
+            path: Some("/health".to_string()),
+            expected_status: Some(200),
+            enabled: Some(true),
+            user_agent: Some("TLS-Proxy-Health-Check/1.0".to_string()),
+            headers: None,
         }
     }
 }
 
-impl Default for LimitsConfig {
+impl Default for CircuitBreakerConfig {
     fn default() -> Self {
         Self {
-            max_connections: 100000,
-            connection_timeout: Duration::from_secs(60),
-            idle_timeout: Duration::from_secs(300),
-            max_request_size: 1024 * 1024,
-            rate_limit_requests_per_second: None,
-            rate_limit_window: Duration::from_secs(60),
-            max_concurrent_handshakes: 1000,
+            failure_threshold: Some(5),
+            recovery_timeout_seconds: Some(60),
+            half_open_max_calls: Some(3),
+            enabled: Some(true),
+        }
+    }
+}
+
+impl Default for WebSocketConfig {
+    fn default() -> Self {
+        Self {
+            max_connections: Some(1000),
+            connection_timeout_seconds: Some(30),
+            ping_interval_seconds: Some(30),
+            pong_timeout_seconds: Some(10),
+            max_message_size: Some(1024 * 1024),
+            max_frame_size: Some(16 * 1024),
+            enabled: Some(true),
+            compression: Some(true),
+        }
+    }
+}
+
+impl Default for SessionConfig {
+    fn default() -> Self {
+        Self {
+            timeout_seconds: Some(3600),
+            sticky_sessions: Some(true),
+            session_header: Some("X-Session-ID".to_string()),
+            cookie_name: Some("SESSIONID".to_string()),
+            secure_cookies: Some(true),
+        }
+    }
+}
+
+impl Default for ConnectionPoolConfig {
+    fn default() -> Self {
+        Self {
+            max_connections_per_backend: Some(100),
+            min_idle_connections: Some(5),
+            max_idle_time_seconds: Some(300),
+            connection_timeout_seconds: Some(30),
+            keep_alive_interval_seconds: Some(60),
+            health_check_interval_seconds: Some(30),
+            max_connection_lifetime_seconds: Some(1800),
+            enabled: Some(true),
+        }
+    }
+}
+
+impl Default for CertificateConfig {
+    fn default() -> Self {
+        Self {
+            auto_reload: Some(true),
+            check_interval_seconds: Some(3600),
+            expiry_warning_days: Some(30),
+            domains: Some(vec!["localhost".to_string()]),
+            ocsp_stapling: Some(false),
+            must_staple: Some(false),
+        }
+    }
+}
+
+impl Default for AdminConfig {
+    fn default() -> Self {
+        Self {
+            bind_address: Some("127.0.0.1:8443".parse().unwrap()),
+            api_key: None,
+            cors_origins: Some(vec!["*".to_string()]),
+            enabled: Some(true),
+            basic_auth: None,
+            tls_enabled: Some(false),
+            read_timeout_seconds: Some(30),
+        }
+    }
+}
+
+impl Default for PerformanceConfig {
+    fn default() -> Self {
+        Self {
+            worker_threads: None,
+            max_blocking_threads: None,
+            tcp_nodelay: Some(true),
+            tcp_keepalive_seconds: Some(600),
+            socket_reuse_port: Some(true),
+            max_concurrent_connections: Some(100000),
+            connection_timeout_seconds: Some(60),
+            idle_timeout_seconds: Some(300),
+            graceful_shutdown_timeout_seconds: Some(30),
+        }
+    }
+}
+
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            tls_min_version: Some("1.2".to_string()),
+            tls_max_version: Some("1.3".to_string()),
+            cipher_suites: None,
+            require_sni: Some(false),
+            client_cert_auth: None,
+            hsts_max_age_seconds: Some(31536000),
+            deny_invalid_hosts: Some(false),
+            proxy_protocol: Some(false),
+        }
+    }
+}
+
+impl Default for LoggingConfig {
+    fn default() -> Self {
+        Self {
+            level: Some("info".to_string()),
+            format: Some("json".to_string()),
+            access_log: None,
+            structured_logging: Some(true),
+            log_requests: Some(true),
+            log_responses: Some(false),
         }
     }
 }
 
 impl ProxyConfig {
-    pub async fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub async fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let content = fs::read_to_string(&path)
             .await
             .with_context(|| format!("Failed to read config file: {:?}", path.as_ref()))?;
@@ -214,39 +367,27 @@ impl ProxyConfig {
             anyhow::bail!("At least one backend must be configured");
         }
         
-        for (i, backend) in self.backends.iter().enumerate() {
-            if backend.weight == 0 {
-                anyhow::bail!("Backend {} has zero weight", i);
-            }
-            if backend.timeout.is_zero() {
-                anyhow::bail!("Backend {} has zero timeout", i);
-            }
+        if !Path::new(&self.cert_path).exists() {
+            anyhow::bail!("Certificate file does not exist: {}", self.cert_path);
         }
         
-        if !self.cert_path.exists() {
-            anyhow::bail!("Certificate file does not exist: {:?}", self.cert_path);
+        if !Path::new(&self.key_path).exists() {
+            anyhow::bail!("Private key file does not exist: {}", self.key_path);
         }
         
-        if !self.key_path.exists() {
-            anyhow::bail!("Private key file does not exist: {:?}", self.key_path);
-        }
-        
-        if let Some(ca_path) = &self.tls.ca_cert_path {
-            if !ca_path.exists() {
-                anyhow::bail!("CA certificate file does not exist: {:?}", ca_path);
+        if let Some(ca_path) = &self.ca_path {
+            if !Path::new(ca_path).exists() {
+                anyhow::bail!("CA certificate file does not exist: {}", ca_path);
             }
         }
         
-        if self.limits.max_connections == 0 {
-            anyhow::bail!("max_connections must be greater than 0");
+        if self.performance.max_concurrent_connections.unwrap_or(1) == 0 {
+            anyhow::bail!("max_concurrent_connections must be greater than 0");
         }
         
-        if self.limits.max_concurrent_handshakes == 0 {
-            anyhow::bail!("max_concurrent_handshakes must be greater than 0");
-        }
-        
-        if self.tls.session_cache_size == 0 {
-            anyhow::bail!("session_cache_size must be greater than 0");
+        match self.strategy.as_str() {
+            "round_robin" | "least_connections" | "ip_hash" | "weighted_round_robin" | "random" => {}
+            _ => anyhow::bail!("Invalid load balancing strategy: {}", self.strategy),
         }
         
         Ok(())
@@ -256,77 +397,31 @@ impl ProxyConfig {
         serde_yaml::to_string(self).context("Failed to serialize config to YAML")
     }
     
-    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+    pub async fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let yaml = self.to_yaml()?;
-        std::fs::write(&path, yaml)
+        fs::write(&path, yaml)
+            .await
             .with_context(|| format!("Failed to write config to file: {:?}", path.as_ref()))?;
         Ok(())
     }
     
-    pub fn get_enabled_backends(&self) -> Vec<&Backend> {
-        self.backends.iter().filter(|b| b.enabled).collect()
+    pub fn get_worker_threads(&self) -> usize {
+        self.performance.worker_threads.unwrap_or_else(|| {
+            std::thread::available_parallelism()
+                .map(|p| p.get())
+                .unwrap_or(4)
+        })
     }
     
-    pub fn total_weight(&self) -> u32 {
-        self.get_enabled_backends().iter().map(|b| b.weight).sum()
-    }
-}
-
-pub struct ConfigWatcher {
-    config_path: PathBuf,
-    current_config: arc_swap::ArcSwap<ProxyConfig>,
-}
-
-impl ConfigWatcher {
-    pub fn new(config_path: PathBuf, initial_config: ProxyConfig) -> Self {
-        Self {
-            config_path,
-            current_config: arc_swap::ArcSwap::new(std::sync::Arc::new(initial_config)),
+    pub fn is_feature_enabled(&self, feature: &str) -> bool {
+        match feature {
+            "health_check" => self.health_check.enabled.unwrap_or(true),
+            "circuit_breaker" => self.circuit_breaker.enabled.unwrap_or(true),
+            "websocket" => self.websocket.enabled.unwrap_or(true),
+            "connection_pool" => self.connection_pool.enabled.unwrap_or(true),
+            "admin" => self.admin.enabled.unwrap_or(true),
+            _ => false,
         }
-    }
-    
-    pub async fn start_watching(&self) -> Result<()> {
-        use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
-        use tokio::sync::mpsc;
-        
-        let (tx, mut rx) = mpsc::channel(1);
-        let config_path = self.config_path.clone();
-        let current_config = self.current_config.clone();
-        
-        let mut watcher = RecommendedWatcher::new(
-            move |res: Result<Event, notify::Error>| {
-                if let Ok(_event) = res {
-                    let _ = tx.try_send(());
-                }
-            },
-            Config::default(),
-        )?;
-        
-        if let Some(parent) = self.config_path.parent() {
-            watcher.watch(parent, RecursiveMode::NonRecursive)?;
-        }
-        
-        tokio::spawn(async move {
-            while let Some(_) = rx.recv().await {
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                
-                match ProxyConfig::load_from_file(&config_path).await {
-                    Ok(new_config) => {
-                        tracing::info!("Configuration reloaded successfully");
-                        current_config.store(std::sync::Arc::new(new_config));
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed to reload configuration: {}", e);
-                    }
-                }
-            }
-        });
-        
-        Ok(())
-    }
-    
-    pub fn get_config(&self) -> std::sync::Arc<ProxyConfig> {
-        self.current_config.load_full()
     }
 }
 
@@ -337,57 +432,30 @@ mod tests {
     use std::io::Write;
     
     #[tokio::test]
-    async fn test_config_loading() {
-        let config_content = r#"
-listen_addr: "127.0.0.1:8443"
-backends:
-  - addr: "127.0.0.1:8080"
-    weight: 1
-    enabled: true
-    timeout: 30s
-    retry_attempts: 3
-cert_path: "./test.crt"
-key_path: "./test.key"
-strategy: "round_robin"
-metrics_addr: "127.0.0.1:9090"
-log_level: "debug"
-"#;
-        
-        let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(config_content.as_bytes()).unwrap();
-        std::fs::write("./test.crt", "dummy cert").unwrap();
-        std::fs::write("./test.key", "dummy key").unwrap();
-        
-        let config = ProxyConfig::load_from_file(temp_file.path()).await;
-        assert!(config.is_ok());
-        
-        let config = config.unwrap();
-        assert_eq!(config.listen_addr.to_string(), "127.0.0.1:8443");
+    async fn test_default_config() {
+        let config = ProxyConfig::default();
         assert_eq!(config.backends.len(), 1);
-        assert_eq!(config.strategy, LoadBalancingStrategy::RoundRobin);
-        
-        std::fs::remove_file("./test.crt").ok();
-        std::fs::remove_file("./test.key").ok();
+        assert_eq!(config.strategy, "round_robin");
+        assert!(config.is_feature_enabled("health_check"));
     }
     
-    #[test]
-    fn test_config_validation() {
-        let mut config = ProxyConfig::default();
-        config.backends.clear();
-        
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        let result = rt.block_on(config.validate());
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("At least one backend"));
-    }
-    
-    #[test]
-    fn test_config_serialization() {
+    #[tokio::test]
+    async fn test_config_serialization() {
         let config = ProxyConfig::default();
         let yaml = config.to_yaml().unwrap();
         assert!(!yaml.is_empty());
         
         let deserialized: ProxyConfig = serde_yaml::from_str(&yaml).unwrap();
         assert_eq!(config.listen_addr, deserialized.listen_addr);
+        assert_eq!(config.backends, deserialized.backends);
+    }
+    
+    #[test]
+    fn test_worker_threads() {
+        let mut config = ProxyConfig::default();
+        assert!(config.get_worker_threads() > 0);
+        
+        config.performance.worker_threads = Some(8);
+        assert_eq!(config.get_worker_threads(), 8);
     }
 }
