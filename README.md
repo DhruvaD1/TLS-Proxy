@@ -1,5 +1,5 @@
 # TLS Termination Proxy 
-=======
+
 A high-performance TLS termination proxy for handling thousands of concurrent connections with minimal latency.
 
 ## Features
