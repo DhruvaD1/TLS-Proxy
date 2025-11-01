@@ -71,7 +71,3 @@ cargo test
 # Load test
 wrk -t12 -c400 -d30s --latency https://localhost:8443/
 ```
-
-## License
-
-MIT License
