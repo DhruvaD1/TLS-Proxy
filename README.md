@@ -1,7 +1,4 @@
 # TLS Termination Proxy 
-
-<<<<<<< HEAD
-A high-performance, production-grade TLS termination proxy written in Rust with advanced features including load balancing, health checking, WebSocket support, rate limiting, connection pooling, and automatic certificate management.
 =======
 A high-performance TLS termination proxy for handling thousands of concurrent connections with minimal latency.
 >>>>>>> 7f581bc93452a50d6994fe8adc9e40444746498b
