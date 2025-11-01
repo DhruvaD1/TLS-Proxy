@@ -1,4 +1,4 @@
-# TLS Termination Proxy
+# TLS Termination Proxy 
 
 A high-performance TLS termination proxy written in Rust for handling thousands of concurrent connections with minimal latency.
 
