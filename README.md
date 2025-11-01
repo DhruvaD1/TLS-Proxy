@@ -13,6 +13,13 @@ A high-performance TLS termination proxy written in Rust for handling thousands 
 
 ## Quick Start
 
+### Automatic Setup & Run
+```bash
+./run.sh
+```
+
+### Manual Setup
+
 1. Install dependencies:
 ```bash
 cargo build --release
@@ -23,19 +30,7 @@ cargo build --release
 openssl req -x509 -newkey rsa:4096 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/C=US/ST=CA/L=San Francisco/O=Test/CN=localhost"
 ```
 
-3. Create `config.yaml`:
-```yaml
-listen_addr: "0.0.0.0:8443"
-backends:
-  - "127.0.0.1:8080"
-  - "127.0.0.1:8081"
-cert_path: "./certs/server.crt"
-key_path: "./certs/server.key"
-strategy: "round_robin"
-metrics_addr: "0.0.0.0:9090"
-```
-
-4. Run the proxy:
+3. Run the proxy with config file:
 ```bash
 cargo run --bin tls-proxy -- --config config.yaml
 ```
