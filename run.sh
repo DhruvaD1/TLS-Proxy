@@ -21,9 +21,9 @@ mkdir -p certs
 echo "2. Generating SSL certificates..."
 if [ ! -f "certs/server.crt" ] || [ ! -f "certs/server.key" ]; then
     openssl req -x509 -newkey rsa:4096 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/C=US/ST=CA/L=San Francisco/O=Test/CN=localhost" 2>/dev/null
-    echo "   ✓ SSL certificates generated"
+    echo "SSL certificates generated"
 else
-    echo "   ✓ SSL certificates already exist"
+    echo "SSL certificates already exist"
 fi
 
 echo "3. Building Rust project..."
@@ -32,11 +32,11 @@ cargo build --release
 echo "4. Starting test backend servers..."
 python3 -m http.server 8080 --directory /tmp &
 BACKEND1_PID=$!
-echo "   ✓ Backend server 1 started on port 8080 (PID: $BACKEND1_PID)"
+echo "Backend server 1 started on port 8080 (PID: $BACKEND1_PID)"
 
 python3 -m http.server 8081 --directory /tmp &
 BACKEND2_PID=$!
-echo "   ✓ Backend server 2 started on port 8081 (PID: $BACKEND2_PID)"
+echo "Backend server 2 started on port 8081 (PID: $BACKEND2_PID)"
 
 sleep 2
 
