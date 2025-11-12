@@ -3,25 +3,17 @@
 A high-performance TLS termination proxy for handling thousands of concurrent connections with minimal latency.
 
 ## Features
-
-### Core
-- High-performance async I/O with Tokio (100k+ concurrent connections)
-- TLS 1.2/1.3 termination using rustls
+- Async I/O with Tokio (100k+ concurrent connections)
+- TLS 1.2/1.3 termination
 - Multiple load balancing strategies (round-robin, least-connections, IP hash, weighted, random)
 - Zero-copy bidirectional stream forwarding
 - Prometheus metrics and structured logging
-
-### Advanced
 - Multi-tier rate limiting with token bucket algorithm
 - Circuit breaker pattern for automatic failover
-- Active health checking with configurable thresholds
-- Per-backend connection pooling with lifecycle management
 - Full WebSocket proxying with session management
 - Sticky sessions using cookies or headers
 - Hot certificate reloading and expiry monitoring
 - Comprehensive admin API for runtime management
-
-## Quick Start
 
 ### Generate certificates and start
 ```bash
