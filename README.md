@@ -1,6 +1,6 @@
 # TLS Termination Proxy 
 
-A high-performance TLS termination proxy for handling thousands of concurrent connections with minimal latency.
+ TLS termination proxy for handling thousands of concurrent connections.
 
 ## Features
 - Async I/O with Tokio (100k+ concurrent connections)
